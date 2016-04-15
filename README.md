@@ -13,9 +13,10 @@ The license for this project is MIT.
 
 ## Dependencies
 
-This code depends on [intellij-library-annotations] and [string]. It is designed to be included as a folder in an IntelliJ project under `source`, eg as `source/applications`.
+This code depends on [intellij-library-annotations], [string] and [logs]. It is designed to be included as a folder in an IntelliJ project under `source`, eg as `source/applications`.
 
 
 [intellij-library-annotations]:  https://github.com/raphaelcohn/intellij-library-annotations "intellij-library-annotations GitHub page"
 [string]: https://github.com/raphaelcohn/string "string GitHub page"
+[logs]: https://github.com/raphaelcohn/logs "logs GitHub page"
 [applications]: https://github.com/raphaelcohn/applications "applications GitHub page"

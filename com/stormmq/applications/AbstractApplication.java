@@ -22,32 +22,29 @@
 
 package com.stormmq.applications;
 
-import com.stormmq.applications.uncaughtExceptionHandlers.ExitCodeSettingUncaughtExceptionHandler;
-import com.stormmq.applications.uncaughtExceptionHandlers.MustExitBecauseOfFailureException;
-import org.jetbrains.annotations.NotNull;
+import com.stormmq.applications.uncaughtExceptionHandlers.*;
+import com.stormmq.logs.Log;
+import org.jetbrains.annotations.*;
 
-import java.io.IOException;
+import java.io.IOError;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.stormmq.applications.ExitCode.CanNotCreate;
+import static com.stormmq.applications.ExitCode.Software;
 import static com.stormmq.applications.ExitCode.Success;
-import static com.stormmq.string.Formatting.format;
-import static java.nio.file.Files.createDirectories;
-import static java.nio.file.Files.deleteIfExists;
+import static java.lang.Thread.currentThread;
 
-public abstract class AbstractMultithreadedApplication implements Application
+public abstract class AbstractApplication implements Application
 {
-	@NotNull private final UncaughtExceptionHandler delegate;
+	@SuppressWarnings("WeakerAccess") @NotNull protected final UncaughtExceptionHandler uncaughtExceptionHandler;
 	@NotNull protected final AtomicReference<ExitCode> exitCode;
 	@NotNull protected final ExitCodeSettingUncaughtExceptionHandler exitCodeSettingUncaughtExceptionHandler;
 
-	protected AbstractMultithreadedApplication(@NotNull final UncaughtExceptionHandler delegate)
+	protected AbstractApplication(@NotNull final Log log)
 	{
-		this.delegate = delegate;
+		uncaughtExceptionHandler = new LogUncaughtExceptionHandler(log);
 		exitCode = new AtomicReference<>(Success);
-		exitCodeSettingUncaughtExceptionHandler = new ExitCodeSettingUncaughtExceptionHandler(delegate, exitCode);
+		exitCodeSettingUncaughtExceptionHandler = new ExitCodeSettingUncaughtExceptionHandler(uncaughtExceptionHandler, exitCode);
 	}
 
 	@Override
@@ -60,9 +57,50 @@ public abstract class AbstractMultithreadedApplication implements Application
 		}
 		catch (final MustExitBecauseOfFailureException e)
 		{
-			delegate.uncaughtException(Thread.currentThread(), e);
+			uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
 		}
 		return exitCode.get();
+	}
+
+	@Override
+	public void run(@NotNull final AutoCloseable... toBeClosedBeforeExit)
+	{
+		ExitCode exitCode;
+		try
+		{
+			exitCode = execute();
+		}
+		catch (@SuppressWarnings("ErrorNotRethrown") final IOError e)
+		{
+			exitCode = handle(e, ExitCode.IOError);
+		}
+		catch (final Throwable e)
+		{
+			exitCode = handle(e, Software);
+		}
+
+		for (final AutoCloseable autoCloseable : toBeClosedBeforeExit)
+		{
+			try
+			{
+				autoCloseable.close();
+			}
+			catch (final Throwable ignored)
+			{
+			}
+		}
+
+		if (exitCode != Success)
+		{
+			exitCode.exit();
+		}
+	}
+
+	@NotNull
+	private ExitCode handle(@NotNull final Throwable throwable, @NotNull final ExitCode exitCode)
+	{
+		uncaughtExceptionHandler.uncaughtException(currentThread(), throwable);
+		return exitCode;
 	}
 
 	protected final boolean mustExitBecauseOfFailure()
@@ -70,28 +108,5 @@ public abstract class AbstractMultithreadedApplication implements Application
 		return exitCode.get() != Success;
 	}
 
-	protected final void recreateOutputPath(@NotNull final Path outputPath) throws MustExitBecauseOfFailureException
-	{
-		try
-		{
-			deleteIfExists(outputPath);
-		}
-		catch (final IOException ignored)
-		{
-			// Lots of legitimate reasons; may be like $HOME for instance (can't delete)
-		}
-
-		try
-		{
-			createDirectories(outputPath);
-		}
-		catch (final IOException e)
-		{
-			exitCode.set(CanNotCreate);
-			throw new MustExitBecauseOfFailureException(format("Could not create output path '%1$s'", outputPath), e);
-		}
-	}
-
 	protected abstract void executeInternally() throws MustExitBecauseOfFailureException;
-
 }

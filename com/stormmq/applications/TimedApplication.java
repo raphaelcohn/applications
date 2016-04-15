@@ -22,18 +22,19 @@
 
 package com.stormmq.applications;
 
+import com.stormmq.applications.timedApplicationResultsUsers.LogTimedApplicationResultsUser;
 import com.stormmq.applications.timedApplicationResultsUsers.TimedApplicationResultsUser;
+import com.stormmq.logs.Log;
 import org.jetbrains.annotations.*;
 
-import static com.stormmq.applications.timedApplicationResultsUsers.PrintStreamTimedApplicationResultsUser.StandardErrorTimedApplicationResultUser;
 import static java.lang.System.currentTimeMillis;
 
 public final class TimedApplication implements Application
 {
 	@NotNull
-	public static Application standardErrorReportingTimedApplication(@NotNull final Application application)
+	public static Application loggingTimedApplication(@NotNull final Application application, @NotNull final Log log)
 	{
-		return new TimedApplication(application, StandardErrorTimedApplicationResultUser);
+		return new TimedApplication(application, new LogTimedApplicationResultsUser(log));
 	}
 
 	@NotNull private final Application application;
@@ -52,8 +53,14 @@ public final class TimedApplication implements Application
 		final long start = currentTimeMillis();
 		final ExitCode exitCode = application.execute();
 		final long end = currentTimeMillis();
-		final long duration = start - end;
+		final long duration = end - start;
 		timedApplicationResultsUser.use(duration);
 		return exitCode;
+	}
+
+	@Override
+	public void run(@NotNull final AutoCloseable... toBeClosedBeforeExit)
+	{
+		application.run(toBeClosedBeforeExit);
 	}
 }

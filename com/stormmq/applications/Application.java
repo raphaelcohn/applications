@@ -24,51 +24,10 @@ package com.stormmq.applications;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOError;
-import java.lang.Thread.UncaughtExceptionHandler;
-
-import static com.stormmq.applications.ExitCode.*;
-import static com.stormmq.applications.uncaughtExceptionHandlers.PrintStreamUncaughtExceptionHandler.StandardErrorUncaughtExceptionHandler;
-import static java.lang.Thread.currentThread;
-
-@FunctionalInterface
 public interface Application
 {
 	@NotNull
 	ExitCode execute();
 
-	static void run(@NotNull final Application application)
-	{
-		run(application, StandardErrorUncaughtExceptionHandler);
-	}
-
-	@SuppressWarnings("ErrorNotRethrown")
-	static void run(@NotNull final Application application, @NotNull final UncaughtExceptionHandler uncaughtExceptionHandler)
-	{
-		ExitCode exitCode;
-		try
-		{
-			exitCode = application.execute();
-		}
-		catch (final IOError e)
-		{
-			exitCode = handle(uncaughtExceptionHandler, e, IOError);
-		}
-		catch (final Throwable e)
-		{
-			exitCode = handle(uncaughtExceptionHandler, e, Software);
-		}
-
-		if (exitCode != Success)
-		{
-			exitCode.exit();
-		}
-	}
-
-	@NotNull
-	static ExitCode handle(@NotNull final UncaughtExceptionHandler uncaughtExceptionHandler, @NotNull final Throwable throwable, @NotNull final ExitCode exitCode)
-	{
-		uncaughtExceptionHandler.uncaughtException(currentThread(), throwable);
-		return exitCode;
-	}
+	void run(@NotNull final AutoCloseable... toBeClosedBeforeExit);
 }

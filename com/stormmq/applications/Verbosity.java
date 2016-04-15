@@ -22,6 +22,11 @@
 
 package com.stormmq.applications;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 public enum Verbosity
 {
 	None,
@@ -33,5 +38,19 @@ public enum Verbosity
 	public boolean isAtLeastVerbose()
 	{
 		return compareTo(None) > 0;
+	}
+
+	@NotNull
+	public <T> T isAtLeastVerbose(@NotNull final Supplier<T> ifTrue, @NotNull final Supplier<T> ifFalse)
+	{
+		final Supplier<T> supplier = isAtLeastVerbose() ? ifTrue : ifFalse;
+		return supplier.get();
+	}
+
+	@NotNull
+	public <T> T isAtLeastVerbose(@NotNull final T original, @NotNull final Function<T, T> ifTrue, @NotNull final Function<T, T> ifFalse)
+	{
+		final Function<T, T> function = isAtLeastVerbose() ? ifTrue : ifFalse;
+		return function.apply(original);
 	}
 }

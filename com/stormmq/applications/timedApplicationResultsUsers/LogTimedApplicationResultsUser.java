@@ -20,42 +20,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package com.stormmq.applications.uncaughtExceptionHandlers;
+package com.stormmq.applications.timedApplicationResultsUsers;
 
+import com.stormmq.logs.Log;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.PrintStream;
-import java.lang.Thread.UncaughtExceptionHandler;
-
-import static com.stormmq.string.Formatting.formatPrintLineAndFlushWhilstSynchronized;
+import static com.stormmq.logs.LogLevel.Debug;
+import static com.stormmq.string.Formatting.format;
 import static java.lang.System.err;
 
-public final class PrintStreamUncaughtExceptionHandler implements UncaughtExceptionHandler
+public final class LogTimedApplicationResultsUser implements TimedApplicationResultsUser
 {
-	@SuppressWarnings("UseOfSystemOutOrSystemErr") @NotNull public static final UncaughtExceptionHandler StandardErrorUncaughtExceptionHandler = new PrintStreamUncaughtExceptionHandler(err);
+	@NotNull private final Log log;
 
-	@NotNull private final PrintStream printStream;
-
-	private PrintStreamUncaughtExceptionHandler(@NotNull final PrintStream printStream)
+	public LogTimedApplicationResultsUser(@NotNull final Log log)
 	{
-		this.printStream = printStream;
+		this.log = log;
 	}
 
 	@Override
-	public void uncaughtException(@NotNull final Thread thread, @NotNull final Throwable uncaughtThrowable)
+	public void use(final long duration)
 	{
-		if (uncaughtThrowable instanceof MustExitBecauseOfFailureException)
-		{
-			formatPrintLineAndFlushWhilstSynchronized(printStream, uncaughtThrowable.getMessage());
-		}
-		else
-		{
-			synchronized (printStream)
-			{
-				formatPrintLineAndFlushWhilstSynchronized(printStream, "Exception '%1$s' on thread '%2$s'", uncaughtThrowable.getMessage(), thread.getName());
-				uncaughtThrowable.printStackTrace(printStream);
-				printStream.flush();
-			}
-		}
+		log.log(Debug, format("Executed in '%1$s' millisecond$%2$s%n", duration, duration == 1 ? "" : "s"));
 	}
 }
