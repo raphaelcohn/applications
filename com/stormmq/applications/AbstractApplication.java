@@ -57,7 +57,7 @@ public abstract class AbstractApplication implements Application
 		}
 		catch (final MustExitBecauseOfFailureException e)
 		{
-			uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
+			uncaughtExceptionHandler.uncaughtException(currentThread(), e);
 		}
 		return exitCode.get();
 	}
@@ -85,7 +85,7 @@ public abstract class AbstractApplication implements Application
 			{
 				autoCloseable.close();
 			}
-			catch (final Throwable ignored)
+			catch (@SuppressWarnings("OverlyBroadCatchBlock") final Throwable ignored)
 			{
 			}
 		}
